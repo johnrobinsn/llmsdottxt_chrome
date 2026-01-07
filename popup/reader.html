@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLMs.txt Reader</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="reader.css">
+</head>
+<body>
+  <div class="reader-container">
+    <header class="reader-header">
+      <a id="llms-url" href="#" target="_blank" class="url-link"></a>
+    </header>
+    <main id="content" class="reader-content">
+      <div class="loading">Loading...</div>
+    </main>
+  </div>
+  <script src="marked.min.js"></script>
+  <script src="reader.js"></script>
+</body>
+</html>

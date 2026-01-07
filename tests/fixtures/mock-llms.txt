@@ -1,0 +1,17 @@
+# Example llms.txt
+
+This is a mock llms.txt file for testing purposes.
+
+## About
+
+This website provides AI-related documentation and resources.
+
+## Links
+
+- [Documentation](/docs)
+- [API Reference](/api)
+- [Examples](/examples)
+
+## Contact
+
+For more information, visit our website.

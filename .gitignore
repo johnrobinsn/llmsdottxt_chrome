@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Test artifacts
+coverage/
+test-results/
+playwright-report/
+.playwright/
+
+# Build/Package artifacts
+*.crx
+*.pem
+*.zip
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

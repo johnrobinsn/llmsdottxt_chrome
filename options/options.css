@@ -1,0 +1,19 @@
+/* Options page styles */
+
+.hidden {
+  display: none !important;
+}
+
+body {
+  padding-top: 2rem;
+}
+
+.label {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.label-text-alt {
+  margin-left: 0;
+}

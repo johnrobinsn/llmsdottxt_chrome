@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>llmsdottxt Settings</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body class="bg-base-200 min-h-screen">
+  <div class="container mx-auto max-w-xl p-8">
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h1 class="card-title text-2xl mb-6">llmsdottxt Settings</h1>
+
+        <!-- History Count Setting -->
+        <div class="form-control mb-4">
+          <label class="label" for="history-count">
+            <span class="label-text font-medium">History Count</span>
+            <span class="label-text-alt text-base-content/60">Number of recent llms.txt URLs to remember</span>
+          </label>
+          <input
+            type="number"
+            id="history-count"
+            class="input input-bordered w-full"
+            min="1"
+            max="50"
+            value="5"
+          />
+        </div>
+
+        <!-- Render Markdown Setting -->
+        <div class="form-control mb-4">
+          <label class="label cursor-pointer justify-start gap-4">
+            <input
+              type="checkbox"
+              id="render-markdown"
+              class="checkbox checkbox-primary"
+              checked
+            />
+            <div>
+              <span class="label-text font-medium">Render as Markdown</span>
+              <p class="text-xs text-base-content/60 mt-1">Format llms.txt content as Markdown in preview and reader</p>
+            </div>
+          </label>
+        </div>
+
+        <!-- Display Frontmatter Setting -->
+        <div class="form-control mb-6">
+          <label class="label cursor-pointer justify-start gap-4">
+            <input
+              type="checkbox"
+              id="show-frontmatter"
+              class="checkbox checkbox-primary"
+              checked
+            />
+            <div>
+              <span class="label-text font-medium">Display frontmatter in reader</span>
+              <p class="text-xs text-base-content/60 mt-1">Show YAML frontmatter at the top of the reader page</p>
+            </div>
+          </label>
+        </div>
+
+        <!-- Save Button -->
+        <div class="flex gap-4 mb-8">
+          <button id="save-btn" class="btn btn-primary">
+            Save Settings
+          </button>
+          <span id="save-status" class="text-success self-center hidden">
+            Settings saved!
+          </span>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Clear History Section -->
+        <div class="mt-4">
+          <h2 class="text-lg font-medium mb-2">History</h2>
+          <p class="text-sm text-base-content/60 mb-4">
+            Clear all stored llms.txt URLs from history.
+          </p>
+          <button id="clear-history-btn" class="btn btn-error btn-outline">
+            Clear All History
+          </button>
+          <span id="clear-status" class="text-success ml-4 hidden">
+            History cleared!
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
