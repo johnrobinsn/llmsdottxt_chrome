@@ -1,6 +1,6 @@
 # llmsdottxt
 
-A Chrome extension that detects `llms.txt` files on websites and makes it easy to discover and copy URLs for use with your favorite LLM.
+A Chrome extension that detects `llms.txt` files on websites as you browse around and makes it easy to discover and copy the URLs or content for use with your favorite LLM.
 
 ![llmsdottxt screenshot](assets/hero.png)
 
@@ -10,9 +10,9 @@ A Chrome extension that detects `llms.txt` files on websites and makes it easy t
 
 1. **Download the extension**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/llmsdottxt.git
+   git clone https://github.com/johnrobinsn/llmsdottxt_chrome
    ```
-   Or download and extract the [ZIP file](https://github.com/YOUR_USERNAME/llmsdottxt/archive/refs/heads/main.zip)
+   Or download and extract the [ZIP file](https://github.com/johnrobinsn/llmsdottxt_chrome/archive/refs/heads/main.zip)
 
 2. **Open Chrome Extensions page**
    - Navigate to `chrome://extensions/` in your browser
