@@ -41,7 +41,7 @@ Then go to `chrome://extensions/` and click the refresh icon on the llmsdottxt c
 
 ### Quick Start
 
-1. Visit a site with an llms.txt file (e.g., [docs.anthropic.com](https://docs.anthropic.com))
+1. Visit a site with an llms.txt file (e.g., [FastHTML – fasthtmlm](https://fastht.ml/docs/))
 2. The extension icon turns **red** when an llms.txt is detected
 3. Click the icon to see the URL and preview the content
 4. Copy the URL or raw content to paste into your favorite LLM
