@@ -37,7 +37,7 @@ To update to the latest version:
 cd llmsdottxt
 git pull
 ```
-Then go to `chrome://extensions/` and click the refresh icon on the llmsdottxt card.
+Then go to [`chrome://extensions/`](chrome://extensions/) and click the refresh icon on the llmsdottxt card.
 
 ### Quick Start
 
