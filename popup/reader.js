@@ -1,4 +1,7 @@
-// LLMs.txt Reader
+// LLMs.txt Reader - with llms-full.txt support
+
+let llmsRawContent = null;
+let llmsFullRawContent = null;
 
 // Extract YAML frontmatter from content
 function extractFrontmatter(content) {
@@ -21,77 +24,41 @@ function extractFrontmatter(content) {
   return { frontmatter, body };
 }
 
-async function init() {
-  const params = new URLSearchParams(window.location.search);
-  const url = params.get('url');
-  const tabId = params.get('tabId');
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
 
-  const urlLink = document.getElementById('llms-url');
-  const contentEl = document.getElementById('content');
+function copyToClipboard(text, button) {
+  navigator.clipboard.writeText(text).then(() => {
+    button.classList.add('copied');
+    const copyIcon = button.querySelector('.copy-icon');
+    const checkIcon = button.querySelector('.check-icon');
+    if (copyIcon) copyIcon.classList.add('hidden');
+    if (checkIcon) checkIcon.classList.remove('hidden');
+    setTimeout(() => {
+      button.classList.remove('copied');
+      if (copyIcon) copyIcon.classList.remove('hidden');
+      if (checkIcon) checkIcon.classList.add('hidden');
+    }, 2000);
+  });
+}
 
-  if (!url) {
-    contentEl.innerHTML = '<div class="loading">No URL provided</div>';
-    return;
-  }
-
-  urlLink.href = url;
-  urlLink.textContent = url;
-
-  // Get settings
-  let showFrontmatter = true;
-  let renderMarkdown = true;
-  try {
-    const settings = await chrome.runtime.sendMessage({ type: 'getSettings' });
-    showFrontmatter = settings.showFrontmatter;
-    renderMarkdown = settings.renderMarkdown;
-  } catch (e) {
-    console.log('Could not get settings:', e);
-  }
-
-  // Try to get cached content from background if we have tabId
-  let content = null;
-
-  if (tabId) {
-    try {
-      const data = await chrome.runtime.sendMessage({ type: 'getTabData', tabId: parseInt(tabId) });
-      if (data.found && data.content) {
-        content = data.content;
-      }
-    } catch (e) {
-      console.log('Could not get cached content:', e);
-    }
-  }
-
-  // If no cached content, fetch fresh
-  if (!content) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) {
-        content = await response.text();
-      } else {
-        contentEl.innerHTML = '<div class="loading">Failed to load content</div>';
-        return;
-      }
-    } catch (e) {
-      contentEl.innerHTML = '<div class="loading">Failed to fetch: ' + e.message + '</div>';
-      return;
-    }
-  }
-
-  // Extract frontmatter
+async function renderContent(content, contentEl, settings) {
   const { frontmatter, body } = extractFrontmatter(content);
   const displayContent = body || content;
 
-  // Build raw content HTML (show immediately)
+  // Show raw content first
   let rawHtml = '';
-  if (frontmatter && showFrontmatter) {
+  if (frontmatter && settings.showFrontmatter) {
     rawHtml += `<div class="frontmatter"><pre>${escapeHtml(frontmatter)}</pre></div>`;
   }
   rawHtml += `<pre>${escapeHtml(displayContent)}</pre>`;
   contentEl.innerHTML = rawHtml;
 
-  // Parse markdown in background using web worker (if enabled)
-  if (renderMarkdown) {
+  // Parse markdown in background
+  if (settings.renderMarkdown) {
     try {
       const worker = new Worker('markdown-worker.js');
       const requestId = Date.now();
@@ -99,7 +66,7 @@ async function init() {
       worker.onmessage = function(e) {
         if (e.data.id === requestId && e.data.html) {
           let html = '';
-          if (frontmatter && showFrontmatter) {
+          if (frontmatter && settings.showFrontmatter) {
             html += `<div class="frontmatter"><pre>${escapeHtml(frontmatter)}</pre></div>`;
           }
           html += e.data.html;
@@ -111,21 +78,137 @@ async function init() {
       worker.onerror = function(e) {
         console.error('Worker error:', e);
         worker.terminate();
-        // Keep raw content on error
       };
 
       worker.postMessage({ content: displayContent, id: requestId });
     } catch (e) {
       console.error('Markdown parse error:', e);
-      // Keep raw content on error
     }
   }
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const url = params.get('url');
+  const fullUrl = params.get('fullUrl');
+  const tabId = params.get('tabId');
+
+  const loadingState = document.getElementById('loading-state');
+
+  // Get settings
+  let settings = { showFrontmatter: true, renderMarkdown: true };
+  try {
+    settings = await chrome.runtime.sendMessage({ type: 'getSettings' });
+  } catch (e) {
+    console.log('Could not get settings:', e);
+  }
+
+  // Get cached data from tab
+  let tabData = null;
+  if (tabId) {
+    try {
+      tabData = await chrome.runtime.sendMessage({
+        type: 'getTabData',
+        tabId: parseInt(tabId)
+      });
+    } catch (e) {
+      console.log('Could not get tab data:', e);
+    }
+  }
+
+  let hasContent = false;
+
+  // Setup llms.txt section
+  if (url) {
+    const llmsSection = document.getElementById('llms-section');
+    const llmsUrlEl = document.getElementById('llms-url');
+    const llmsContentEl = document.getElementById('llms-content');
+
+    llmsUrlEl.href = url;
+    llmsUrlEl.textContent = url;
+
+    // Get content from cache or fetch
+    let content = tabData?.content;
+    if (!content) {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          content = await response.text();
+        }
+      } catch (e) {
+        console.log('Failed to fetch llms.txt:', e);
+      }
+    }
+
+    if (content) {
+      llmsRawContent = content;
+      llmsSection.classList.remove('hidden');
+      hasContent = true;
+      await renderContent(content, llmsContentEl, settings);
+    }
+
+    // Setup copy buttons
+    document.getElementById('copy-llms-url-btn').addEventListener('click', (e) => {
+      copyToClipboard(url, e.currentTarget);
+    });
+    document.getElementById('copy-llms-source-btn').addEventListener('click', (e) => {
+      if (llmsRawContent) {
+        copyToClipboard(llmsRawContent, e.currentTarget);
+      }
+    });
+  }
+
+  // Setup llms-full.txt section
+  if (fullUrl) {
+    const fullSection = document.getElementById('llms-full-section');
+    const fullUrlEl = document.getElementById('llms-full-url');
+    const fullContentEl = document.getElementById('llms-full-content');
+    const divider = document.getElementById('file-divider');
+
+    fullUrlEl.href = fullUrl;
+    fullUrlEl.textContent = fullUrl;
+
+    // Get content from cache or fetch
+    let fullContent = tabData?.fullContent;
+    if (!fullContent) {
+      try {
+        const response = await fetch(fullUrl);
+        if (response.ok) {
+          fullContent = await response.text();
+        }
+      } catch (e) {
+        console.log('Failed to fetch llms-full.txt:', e);
+      }
+    }
+
+    if (fullContent) {
+      llmsFullRawContent = fullContent;
+      fullSection.classList.remove('hidden');
+      // Show divider only if both sections are visible
+      if (hasContent) {
+        divider.classList.remove('hidden');
+      }
+      hasContent = true;
+      await renderContent(fullContent, fullContentEl, settings);
+    }
+
+    // Setup copy buttons
+    document.getElementById('copy-llms-full-url-btn').addEventListener('click', (e) => {
+      copyToClipboard(fullUrl, e.currentTarget);
+    });
+    document.getElementById('copy-llms-full-source-btn').addEventListener('click', (e) => {
+      if (llmsFullRawContent) {
+        copyToClipboard(llmsFullRawContent, e.currentTarget);
+      }
+    });
+  }
+
+  // Hide loading state if we have content
+  if (hasContent) {
+    loadingState.classList.add('hidden');
+  } else {
+    loadingState.textContent = 'No content available';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);

@@ -60,6 +60,8 @@ document.addEventListener('keydown', (e) => {
 let currentTabId = null;
 let currentLlmsUrl = null;
 let currentRawContent = null;
+let currentFullUrl = null;
+let currentFullContent = null;
 
 async function init() {
   // Get current tab
@@ -71,7 +73,7 @@ async function init() {
     chrome.runtime.openOptionsPage();
   });
 
-  // Setup copy button
+  // Setup copy button for llms.txt
   document.getElementById('copy-current-btn').addEventListener('click', () => {
     const url = document.getElementById('current-url').href;
     if (url && url !== '#') {
@@ -79,11 +81,24 @@ async function init() {
     }
   });
 
+  // Setup copy button for llms-full.txt
+  document.getElementById('copy-full-btn').addEventListener('click', () => {
+    const url = document.getElementById('current-full-url').href;
+    if (url && url !== '#') {
+      copyToClipboard(url, document.getElementById('copy-full-btn'));
+    }
+  });
+
   // Setup reader button
   document.getElementById('open-reader-btn').addEventListener('click', () => {
-    if (currentLlmsUrl) {
-      const readerUrl = chrome.runtime.getURL('popup/reader.html') +
-        `?url=${encodeURIComponent(currentLlmsUrl)}&tabId=${currentTabId}`;
+    if (currentLlmsUrl || currentFullUrl) {
+      let readerUrl = chrome.runtime.getURL('popup/reader.html') + `?tabId=${currentTabId}`;
+      if (currentLlmsUrl) {
+        readerUrl += `&url=${encodeURIComponent(currentLlmsUrl)}`;
+      }
+      if (currentFullUrl) {
+        readerUrl += `&fullUrl=${encodeURIComponent(currentFullUrl)}`;
+      }
       chrome.tabs.create({ url: readerUrl });
     }
   });
@@ -107,7 +122,10 @@ async function loadTabData(tabId) {
   const foundState = document.getElementById('found-state');
   const notFoundState = document.getElementById('not-found-state');
   const statusBadge = document.getElementById('status-badge');
+  const llmsUrlRow = document.getElementById('llms-url-row');
+  const fullUrlRow = document.getElementById('full-url-row');
   const currentUrl = document.getElementById('current-url');
+  const currentFullUrlEl = document.getElementById('current-full-url');
   const contentPreview = document.getElementById('content-preview');
 
   if (data.found) {
@@ -115,14 +133,43 @@ async function loadTabData(tabId) {
     notFoundState.classList.add('hidden');
     statusBadge.classList.remove('hidden');
 
-    currentUrl.href = data.url;
-    currentUrl.textContent = data.url;
+    // Store both URLs and content for reader
     currentLlmsUrl = data.url;
     currentRawContent = data.content;
+    currentFullUrl = data.fullUrl;
+    currentFullContent = data.fullContent;
+
+    // Show llms.txt URL row if available
+    if (data.url) {
+      llmsUrlRow.classList.remove('hidden');
+      currentUrl.href = data.url;
+      currentUrl.textContent = data.url;
+    } else {
+      llmsUrlRow.classList.add('hidden');
+    }
+
+    // Show llms-full.txt URL row if available
+    if (data.fullUrl) {
+      fullUrlRow.classList.remove('hidden');
+      currentFullUrlEl.href = data.fullUrl;
+      currentFullUrlEl.textContent = data.fullUrl;
+    } else {
+      fullUrlRow.classList.add('hidden');
+    }
+
+    // Determine which content to display in preview based on preferFull setting
+    let displayContent;
+    if (settings.preferFull && data.fullContent) {
+      displayContent = data.fullContent;
+    } else if (data.content) {
+      displayContent = data.content;
+    } else {
+      displayContent = data.fullContent;
+    }
 
     // Strip frontmatter and show raw content immediately
-    const { body } = extractFrontmatter(data.content);
-    const content = body || data.content;
+    const { body } = extractFrontmatter(displayContent);
+    const content = body || displayContent;
 
     // Show raw content first (instant)
     contentPreview.innerHTML = `<pre>${escapeHtml(content)}</pre>`;
@@ -162,9 +209,14 @@ async function loadHistory() {
   const noHistory = document.getElementById('no-history');
   const historyCount = document.getElementById('history-count');
 
-  historyCount.textContent = history.length;
+  // Count total URLs (each entry can have both url and fullUrl)
+  const totalUrls = history.reduce((count, item) => {
+    return count + (item.url ? 1 : 0) + (item.fullUrl ? 1 : 0);
+  }, 0);
 
-  if (history.length === 0) {
+  historyCount.textContent = totalUrls;
+
+  if (totalUrls === 0) {
     historyList.classList.add('hidden');
     noHistory.classList.remove('hidden');
     return;
@@ -176,33 +228,40 @@ async function loadHistory() {
   historyList.innerHTML = '';
 
   history.forEach((item) => {
-    const row = document.createElement('div');
-    row.className = 'history-item';
+    // Create entries for each URL present (llms.txt and/or llms-full.txt)
+    const urls = [];
+    if (item.url) urls.push(item.url);
+    if (item.fullUrl) urls.push(item.fullUrl);
 
-    const link = document.createElement('a');
-    link.href = item.url;
-    link.target = '_blank';
-    link.textContent = item.url;
+    urls.forEach((url) => {
+      const row = document.createElement('div');
+      row.className = 'history-item';
 
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'copy-btn';
-    copyBtn.title = 'Copy URL';
-    copyBtn.innerHTML = `
-      <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-      </svg>
-      <svg class="check-icon hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-      </svg>
-    `;
-    copyBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      copyToClipboard(item.url, copyBtn);
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.textContent = url;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.title = 'Copy URL';
+      copyBtn.innerHTML = `
+        <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+        <svg class="check-icon hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      `;
+      copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        copyToClipboard(url, copyBtn);
+      });
+
+      row.appendChild(link);
+      row.appendChild(copyBtn);
+      historyList.appendChild(row);
     });
-
-    row.appendChild(link);
-    row.appendChild(copyBtn);
-    historyList.appendChild(row);
   });
 }
 

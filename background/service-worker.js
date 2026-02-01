@@ -1,10 +1,11 @@
 // llmsdottxt Service Worker
-// Handles llms.txt detection, icon state, and storage
+// Handles llms.txt and llms-full.txt detection, icon state, and storage
 
 const DEFAULTS = {
   historyCount: 5,
   renderMarkdown: true,
-  showFrontmatter: true
+  showFrontmatter: true,
+  preferFull: false
 };
 
 
@@ -67,6 +68,19 @@ function getLlmsTxtUrl(pageUrl) {
   }
 }
 
+// Get the llms-full.txt URL for a given page URL
+function getLlmsFullTxtUrl(pageUrl) {
+  try {
+    const url = new URL(pageUrl);
+    const pathParts = url.pathname.split('/');
+    pathParts.pop();
+    const dirPath = pathParts.join('/') || '/';
+    return `${url.origin}${dirPath}${dirPath.endsWith('/') ? '' : '/'}llms-full.txt`;
+  } catch {
+    return null;
+  }
+}
+
 // Get domain from URL
 function getDomain(url) {
   try {
@@ -76,10 +90,49 @@ function getDomain(url) {
   }
 }
 
-// Remove a URL from history
-async function removeFromHistory(llmsTxtUrl) {
+// Fetch and validate an llms file (shared logic for both llms.txt and llms-full.txt)
+async function fetchAndValidateLlmsFile(url) {
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'text/plain' }
+    });
+
+    if (!response.ok) {
+      return { found: false };
+    }
+
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    const isHtml = contentType.includes('text/html') || contentType.includes('application/xhtml');
+
+    if (isHtml) {
+      return { found: false };
+    }
+
+    const content = await response.text();
+    const trimmedContent = content.trim();
+
+    // Content sniffing - reject if content looks like HTML
+    if (trimmedContent.startsWith('<!') ||
+        trimmedContent.toLowerCase().startsWith('<html') ||
+        trimmedContent.toLowerCase().startsWith('<?xml')) {
+      return { found: false };
+    }
+
+    return { found: true, content };
+  } catch (err) {
+    console.log('Fetch error for', url, ':', err.message);
+    return { found: false };
+  }
+}
+
+// Remove URLs from history (handles both url and fullUrl)
+async function removeFromHistory(llmsTxtUrl, llmsFullTxtUrl) {
   const { history = [] } = await chrome.storage.local.get('history');
-  const filtered = history.filter(h => h.url !== llmsTxtUrl);
+  const filtered = history.filter(h => {
+    return h.url !== llmsTxtUrl && h.url !== llmsFullTxtUrl &&
+           h.fullUrl !== llmsTxtUrl && h.fullUrl !== llmsFullTxtUrl;
+  });
   if (filtered.length !== history.length) {
     await chrome.storage.local.set({ history: filtered });
   }
@@ -90,99 +143,85 @@ async function clearTabData(tabId) {
   await chrome.storage.session.remove(`tab_${tabId}`);
 }
 
-// Check for llms.txt at the current path
+// Check for llms.txt and llms-full.txt at the current path
 async function checkForLlmsTxt(tabId, pageUrl) {
   console.log('checkForLlmsTxt called:', tabId, pageUrl);
 
   if (!isHttpUrl(pageUrl)) {
     console.log('Not HTTP URL, checking history');
-    // Non-HTTP page - just update icon based on history
     await updateIconForTab(tabId, pageUrl);
     return;
   }
 
   const llmsTxtUrl = getLlmsTxtUrl(pageUrl);
-  console.log('Checking for:', llmsTxtUrl);
+  const llmsFullTxtUrl = getLlmsFullTxtUrl(pageUrl);
+  console.log('Checking for:', llmsTxtUrl, 'and', llmsFullTxtUrl);
+
   if (!llmsTxtUrl) return;
 
-  try {
-    const response = await fetch(llmsTxtUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'text/plain' }
+  // Fetch both files in parallel
+  const [llmsResult, fullResult] = await Promise.all([
+    fetchAndValidateLlmsFile(llmsTxtUrl),
+    fetchAndValidateLlmsFile(llmsFullTxtUrl)
+  ]);
+
+  console.log('llms.txt found:', llmsResult.found, 'llms-full.txt found:', fullResult.found);
+
+  if (llmsResult.found || fullResult.found) {
+    await saveLlmsTxtData(tabId, pageUrl, {
+      url: llmsResult.found ? llmsTxtUrl : null,
+      content: llmsResult.found ? llmsResult.content : null,
+      fullUrl: fullResult.found ? llmsFullTxtUrl : null,
+      fullContent: fullResult.found ? fullResult.content : null
     });
-
-    console.log('Fetch response:', response.status, response.headers.get('content-type'));
-
-    if (response.ok) {
-      const contentType = (response.headers.get('content-type') || '').toLowerCase();
-      const isHtml = contentType.includes('text/html') || contentType.includes('application/xhtml');
-
-      if (isHtml) {
-        // Explicitly HTML - remove any bad history entry and mark as not found
-        await removeFromHistory(llmsTxtUrl);
-        await clearTabData(tabId);
-        setStaticIcon(tabId);
-        setStaticIcon(tabId);
-        return;
-      }
-
-      const content = await response.text();
-
-      // Content sniffing - reject if content looks like HTML
-      const trimmedContent = content.trim();
-      if (trimmedContent.startsWith('<!') ||
-          trimmedContent.toLowerCase().startsWith('<html') ||
-          trimmedContent.toLowerCase().startsWith('<?xml')) {
-        await removeFromHistory(llmsTxtUrl);
-        await clearTabData(tabId);
-        setStaticIcon(tabId);
-        setStaticIcon(tabId);
-        return;
-      }
-
-      // Valid llms.txt - save URL and raw content (markdown parsed in popup)
-      console.log('Valid llms.txt found!', llmsTxtUrl);
-      await saveLlmsTxtUrl(tabId, llmsTxtUrl, pageUrl, content);
-      return;
-    }
-  } catch (err) {
-    console.log('Fetch error:', err.message);
+    return;
   }
 
-  // No llms.txt found at current path - check history for domain
-  console.log('No llms.txt at current path, checking history');
+  // Neither found - check history for domain
+  console.log('No llms.txt or llms-full.txt at current path, checking history');
   await updateIconForTab(tabId, pageUrl);
 }
 
-// Save llms.txt URL and raw content (markdown parsed later in popup)
-async function saveLlmsTxtUrl(tabId, llmsTxtUrl, pageUrl, content) {
+// Save llms.txt data (handles both files)
+async function saveLlmsTxtData(tabId, pageUrl, data) {
   const domain = getDomain(pageUrl);
   const settings = await getSettings();
 
   // Get current history
   const { history = [] } = await chrome.storage.local.get('history');
 
-  // Remove existing entry for this URL if present
-  const filteredHistory = history.filter(h => h.url !== llmsTxtUrl);
+  // Remove existing entry for this URL combination if present
+  const filteredHistory = history.filter(h => {
+    return h.url !== data.url && h.url !== data.fullUrl &&
+           h.fullUrl !== data.url && h.fullUrl !== data.fullUrl &&
+           h.domain !== domain;
+  });
+
+  // Create new history entry
+  const historyEntry = {
+    url: data.url,
+    fullUrl: data.fullUrl,
+    domain: domain,
+    content: data.content,
+    fullContent: data.fullContent
+  };
 
   // Add new entry at the beginning
-  filteredHistory.unshift({
-    url: llmsTxtUrl,
-    domain: domain,
-    content: content
-  });
+  filteredHistory.unshift(historyEntry);
 
   // Keep only the configured number of entries
   const trimmedHistory = filteredHistory.slice(0, settings.historyCount);
 
   await chrome.storage.local.set({ history: trimmedHistory });
 
-  // Store current llms.txt for this tab
+  // Store current data for this tab
   await chrome.storage.session.set({
     [`tab_${tabId}`]: {
-      url: llmsTxtUrl,
+      url: data.url,
+      fullUrl: data.fullUrl,
       domain: domain,
-      content: content
+      content: data.content,
+      fullContent: data.fullContent
     }
   });
 
@@ -194,7 +233,7 @@ async function saveLlmsTxtUrl(tabId, llmsTxtUrl, pageUrl, content) {
 async function updateIconForTab(tabId, pageUrl) {
   const domain = getDomain(pageUrl);
 
-  // Check if we have a current llms.txt for this tab
+  // Check if we have current data for this tab
   const sessionData = await chrome.storage.session.get(`tab_${tabId}`);
   const tabData = sessionData[`tab_${tabId}`];
 
@@ -212,8 +251,10 @@ async function updateIconForTab(tabId, pageUrl) {
     await chrome.storage.session.set({
       [`tab_${tabId}`]: {
         url: domainEntry.url,
+        fullUrl: domainEntry.fullUrl,
         domain: domain,
-        content: domainEntry.content
+        content: domainEntry.content,
+        fullContent: domainEntry.fullContent
       }
     });
     setFoundIcon(tabId);
@@ -270,7 +311,8 @@ async function getSettings() {
   return {
     historyCount: settings.historyCount ?? DEFAULTS.historyCount,
     renderMarkdown: settings.renderMarkdown ?? DEFAULTS.renderMarkdown,
-    showFrontmatter: settings.showFrontmatter ?? DEFAULTS.showFrontmatter
+    showFrontmatter: settings.showFrontmatter ?? DEFAULTS.showFrontmatter,
+    preferFull: settings.preferFull ?? DEFAULTS.preferFull
   };
 }
 
@@ -317,6 +359,8 @@ async function handleGetTabData(tabId) {
       found: true,
       url: tabData.url,
       content: tabData.content,
+      fullUrl: tabData.fullUrl,
+      fullContent: tabData.fullContent,
       domain: tabData.domain
     };
   }

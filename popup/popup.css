@@ -18,7 +18,7 @@ body {
 
 /* Popup container */
 .popup-container {
-  width: 550px;
+  width: 600px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -82,10 +82,20 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  background: oklch(var(--b1));
-  border-radius: 8px;
-  margin-bottom: 3px;
+  padding: 2px 8px;
+  background: transparent;
+  border-radius: 4px;
+  margin-bottom: 0;
+}
+
+.url-row:hover {
+  background: oklch(var(--bc) / 0.05);
+}
+
+/* Add spacing before preview when URL rows are present */
+.url-row + .preview-container,
+.url-row + .url-row + .preview-container {
+  margin-top: 8px;
 }
 
 .url-link {

@@ -3,7 +3,8 @@
 const DEFAULTS = {
   historyCount: 5,
   renderMarkdown: true,
-  showFrontmatter: true
+  showFrontmatter: true,
+  preferFull: false
 };
 
 document.addEventListener('DOMContentLoaded', init);
@@ -15,6 +16,7 @@ async function init() {
   document.getElementById('history-count').value = settings.historyCount;
   document.getElementById('render-markdown').checked = settings.renderMarkdown;
   document.getElementById('show-frontmatter').checked = settings.showFrontmatter;
+  document.getElementById('prefer-full').checked = settings.preferFull;
 
   // Setup save button
   document.getElementById('save-btn').addEventListener('click', saveSettings);
@@ -27,12 +29,14 @@ async function saveSettings() {
   const historyCount = parseInt(document.getElementById('history-count').value, 10);
   const renderMarkdown = document.getElementById('render-markdown').checked;
   const showFrontmatter = document.getElementById('show-frontmatter').checked;
+  const preferFull = document.getElementById('prefer-full').checked;
 
   // Validate
   const settings = {
     historyCount: Math.max(1, Math.min(50, historyCount || DEFAULTS.historyCount)),
     renderMarkdown: renderMarkdown,
-    showFrontmatter: showFrontmatter
+    showFrontmatter: showFrontmatter,
+    preferFull: preferFull
   };
 
   // Update input values to validated values

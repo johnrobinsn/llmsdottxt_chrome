@@ -10,12 +10,63 @@
 </head>
 <body>
   <div class="reader-container">
-    <header class="reader-header">
-      <a id="llms-url" href="#" target="_blank" class="url-link"></a>
-    </header>
-    <main id="content" class="reader-content">
-      <div class="loading">Loading...</div>
-    </main>
+    <!-- llms.txt Section -->
+    <section id="llms-section" class="file-section hidden">
+      <header class="reader-header">
+        <div class="url-row">
+          <a id="llms-url" href="#" target="_blank" class="url-link"></a>
+          <button id="copy-llms-url-btn" class="copy-btn" title="Copy URL">
+            <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            <svg class="check-icon hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+          <button id="copy-llms-source-btn" class="copy-btn" title="Copy raw source">
+            <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <svg class="check-icon hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+        </div>
+      </header>
+      <main id="llms-content" class="reader-content"></main>
+    </section>
+
+    <!-- Divider (shown only when both files exist) -->
+    <hr id="file-divider" class="file-divider hidden">
+
+    <!-- llms-full.txt Section -->
+    <section id="llms-full-section" class="file-section hidden">
+      <header class="reader-header">
+        <div class="url-row">
+          <a id="llms-full-url" href="#" target="_blank" class="url-link"></a>
+          <button id="copy-llms-full-url-btn" class="copy-btn" title="Copy URL">
+            <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            <svg class="check-icon hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+          <button id="copy-llms-full-source-btn" class="copy-btn" title="Copy raw source">
+            <svg class="copy-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <svg class="check-icon hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+        </div>
+      </header>
+      <main id="llms-full-content" class="reader-content"></main>
+    </section>
+
+    <!-- Loading state (shown when neither section is visible yet) -->
+    <div id="loading-state" class="loading">Loading...</div>
   </div>
   <script src="marked.min.js"></script>
   <script src="reader.js"></script>

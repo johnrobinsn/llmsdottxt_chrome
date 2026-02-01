@@ -47,7 +47,7 @@
         </div>
 
         <!-- Display Frontmatter Setting -->
-        <div class="form-control mb-6">
+        <div class="form-control mb-4">
           <label class="label cursor-pointer justify-start gap-4">
             <input
               type="checkbox"
@@ -58,6 +58,21 @@
             <div>
               <span class="label-text font-medium">Display frontmatter in reader</span>
               <p class="text-xs text-base-content/60 mt-1">Show YAML frontmatter at the top of the reader page</p>
+            </div>
+          </label>
+        </div>
+
+        <!-- Prefer llms-full.txt Setting -->
+        <div class="form-control mb-6">
+          <label class="label cursor-pointer justify-start gap-4">
+            <input
+              type="checkbox"
+              id="prefer-full"
+              class="checkbox checkbox-primary"
+            />
+            <div>
+              <span class="label-text font-medium">Prefer llms-full.txt</span>
+              <p class="text-xs text-base-content/60 mt-1">Show llms-full.txt in preview when both files are available</p>
             </div>
           </label>
         </div>

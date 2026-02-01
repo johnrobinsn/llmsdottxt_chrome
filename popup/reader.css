@@ -137,3 +137,67 @@ body {
   font-size: 13px;
   color: oklch(var(--bc) / 0.7);
 }
+
+/* File sections */
+.file-section {
+  margin-bottom: 32px;
+}
+
+.file-section:last-of-type {
+  margin-bottom: 0;
+}
+
+/* URL row with copy buttons */
+.url-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.url-row .url-link {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Copy buttons in reader */
+.copy-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: oklch(var(--bc) / 0.05);
+  border-radius: 6px;
+  cursor: pointer;
+  color: oklch(var(--bc) / 0.5);
+  transition: all 0.15s ease;
+}
+
+.copy-btn:hover {
+  background: oklch(var(--bc) / 0.1);
+  color: oklch(var(--bc) / 0.8);
+}
+
+.copy-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.copy-btn .check-icon {
+  color: oklch(var(--su));
+}
+
+/* File divider */
+.file-divider {
+  border: none;
+  border-top: 2px solid oklch(var(--bc) / 0.15);
+  margin: 40px 0;
+}
+
+/* Hidden utility */
+.hidden {
+  display: none !important;
+}

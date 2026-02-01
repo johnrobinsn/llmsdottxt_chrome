@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-llmsdottxt is a Chrome extension (Manifest V3) that detects `llms.txt` files on websites and provides quick access to their content. The extension checks for llms.txt at the current path of any visited page and notifies users via icon color changes and a popup panel.
+llmsdottxt is a Chrome extension (Manifest V3) that detects `llms.txt` and `llms-full.txt` files on websites and provides quick access to their content. The extension checks for both files at the current path of any visited page (fetched in parallel) and notifies users via icon color changes and a popup panel.
 
 ## Commands
 
@@ -38,8 +38,13 @@ npm run test:coverage
 
 ### Storage
 
-- **`chrome.storage.local`**: Persists history (array of {url, domain, content}) and settings across sessions
-- **`chrome.storage.session`**: Stores current tab data (tab_${tabId}) for fast access, cleared when tab closes
+- **`chrome.storage.local`**: Persists history and settings across sessions
+- **`chrome.storage.session`**: Stores current tab data (`tab_${tabId}`) for fast access, cleared when tab closes
+
+History entries store both files together:
+```javascript
+{ url, fullUrl, domain, content, fullContent }
+```
 
 ### Icon States
 
@@ -65,7 +70,13 @@ const context = await chromium.launchPersistentContext('', {
 ## Detection Logic
 
 1. On page load, check if URL is HTTP(S)
-2. Construct llms.txt URL at current path directory (e.g., `/docs/api/guide.html` → `/docs/api/llms.txt`)
-3. Fetch and validate: reject if response is HTML (by content-type header or content sniffing)
-4. Valid llms.txt is saved to history and session storage; icon updates to "found" state
-5. If no llms.txt at current path, check history for any entry matching current domain
+2. Construct URLs for both `llms.txt` and `llms-full.txt` at current path directory
+3. Fetch both files in parallel using `Promise.all()`
+4. Validate each: reject if response is HTML (by content-type header or content sniffing)
+5. If either file found, save to history and session storage; icon updates to "found" state
+6. If neither found at current path, check history for any entry matching current domain
+
+### Settings
+
+- **Prefer llms-full.txt**: When enabled, shows llms-full.txt in popup preview (default: off, shows llms.txt)
+- The reader always shows both files when available (llms.txt first, then llms-full.txt)
